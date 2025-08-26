@@ -165,7 +165,7 @@ const audioRef = useRef<HTMLAudioElement | null>(null)
 const audioContextRef = useRef<AudioContext | null>(null)
 const analyserRef = useRef<AnalyserNode | null>(null)
 const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
-const audioUpdateIntervalRef = useRef<number>()
+const audioUpdateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
 const AUDIO_UPDATE_INTERVAL = 100
 
