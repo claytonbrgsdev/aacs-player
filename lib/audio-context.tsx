@@ -165,7 +165,7 @@ const audioRef = useRef<HTMLAudioElement | null>(null)
 const audioContextRef = useRef<AudioContext | null>(null)
 const analyserRef = useRef<AnalyserNode | null>(null)
 const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
-const audioUpdateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+const audioUpdateIntervalRef = useRef<number | NodeJS.Timeout | null>(null)
 
 const AUDIO_UPDATE_INTERVAL = 100
 
@@ -189,16 +189,18 @@ const updateAudioData = useCallback(() => {
 
 useEffect(() => {
   if (isPlaying && analyserRef.current) {
-    audioUpdateIntervalRef.current = window.setInterval(updateAudioData, AUDIO_UPDATE_INTERVAL)
+    audioUpdateIntervalRef.current = setInterval(updateAudioData, AUDIO_UPDATE_INTERVAL)
   } else {
-    if (audioUpdateIntervalRef.current) {
-      clearInterval(audioUpdateIntervalRef.current)
+    if (audioUpdateIntervalRef.current !== null) {
+      clearInterval(audioUpdateIntervalRef.current as any)
+      audioUpdateIntervalRef.current = null
     }
   }
   
   return () => {
-    if (audioUpdateIntervalRef.current) {
-      clearInterval(audioUpdateIntervalRef.current)
+    if (audioUpdateIntervalRef.current !== null) {
+      clearInterval(audioUpdateIntervalRef.current as any)
+      audioUpdateIntervalRef.current = null
     }
   }
 }, [isPlaying, updateAudioData])
