@@ -1,0 +1,34 @@
+# Node & package managers
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Build / dist
+build/
+dist/
+
+# Editor
+.vscode/
+.idea/
+
+# Misc
+coverage/
+*.local
