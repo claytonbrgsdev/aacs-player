@@ -54,107 +54,58 @@ const AudioPlayerContext = createContext<AudioPlayerContextType | null>(null)
 
 const releasesData: Release[] = [
   {
-    id: "azulbic001",
-    title: "DREAM_VISITORS",
-    artist: "AZULBIC",
-    year: "2024",
-    genre: "ELECTRONIC",
-    format: "DIGITAL",
-    size: "32.4MB",
-    cover: "/covers/azulbic_dream_visitors.png",
+    id: 'azulbic-unreleased',
+    title: 'UNRELEASED_DEMOS',
+    artist: 'AZULBIC',
+    year: '2026',
+    genre: 'ELECTRONIC',
+    format: 'DIGITAL',
+    size: '73.2MB',
+    cover: 'placeholder.svg',
     tracks: [
       {
         id: 1,
-        title: "TRACK_A.MP3",
-        artist: "AZULBIC",
-        duration: "04:12",
-        size: "9.6MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20azulbic%20-%20A-w4lBXEz1yILw6eaH8NrtLJOUnPfILT.mp3",
-        releaseId: "azulbic001"
+        title: 'BPF.MP3',
+        artist: 'AZULBIC + ARMENIATEK',
+        duration: '05:46',
+        size: '5.3MB',
+        file: 'audio/azulbic-armeniatek-bpf.mp3',
+        releaseId: 'azulbic-unreleased',
       },
       {
         id: 2,
-        title: "TRACK_C.MP3",
-        artist: "AZULBIC",
-        duration: "03:45",
-        size: "8.5MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20azulbic%20-%20C-wXBLLyuyvBpMkp5ezWlyBeJzdpZwkg.mp3",
-        releaseId: "azulbic001"
+        title: 'TAVINI.MP3',
+        artist: 'AZULBIC + ARMENIATEK',
+        duration: '06:24',
+        size: '5.9MB',
+        file: 'audio/azulbic-armeniatek-tavini.mp3',
+        releaseId: 'azulbic-unreleased',
       },
       {
         id: 3,
-        title: "TRACK_E.MP3",
-        artist: "AZULBIC",
-        duration: "05:21",
-        size: "7.8MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20%20azulbic%20-%20E-nZ4ZxpvsNSyTpirNeTHl2qGJ1NSCzZ.mp3",
-        releaseId: "azulbic001"
+        title: 'UDT.MP3',
+        artist: 'AZULBIC + ARMENIATEK',
+        duration: '05:27',
+        size: '5.0MB',
+        file: 'audio/azulbic-armeniatek-udt.mp3',
+        releaseId: 'azulbic-unreleased',
       },
       {
         id: 4,
-        title: "TRACK_G.MP3",
-        artist: "AZULBIC",
-        duration: "03:33",
-        size: "6.5MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20azulbic%20-%20G-rN4qEJ9tywdFBbRrZ6AO1pSHEBgxe4.mp3",
-        releaseId: "azulbic001"
-      }
-    ]
+        title: 'TAPA_NA_BUNDA_E_JOGA_NA_CAMA.WAV',
+        artist: 'AZULBIC',
+        duration: '05:36',
+        size: '57.0MB',
+        file: 'audio/azulbic-tapa-na-bunda-e-joga-na-cama-atividade-ludica.wav',
+        releaseId: 'azulbic-unreleased',
+      },
+    ],
   },
-  {
-    id: "azulbic002",
-    title: "ESSA_NAO_EH_PRA_VC",
-    artist: "AZULBIC",
-    year: "2024",
-    genre: "ELECTRONIC",
-    format: "DIGITAL",
-    size: "28.7MB",
-    cover: "/covers/azulbic_essa_nao_eh_pra_vc.png",
-    tracks: [
-      {
-        id: 5,
-        title: "ESSA_NAO_EH_PRA_VC.MP3",
-        artist: "AZULBIC",
-        duration: "04:45",
-        size: "8.9MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20azulbic%20-%20essa%20n%20e%CC%81%20pra%20vc-HOtLnbphPsXIkBI1RFo3oqON1IeEal.mp3",
-        releaseId: "azulbic002"
-      },
-      {
-        id: 6,
-        title: "TRACK_B.MP3",
-        artist: "AZULBIC",
-        duration: "03:28",
-        size: "6.2MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20azulbic%20-%20B-kzIH3z2Kd0hKI9q1cWq41HGMQt120p.mp3",
-        releaseId: "azulbic002"
-      },
-      {
-        id: 7,
-        title: "TRACK_D.MP3",
-        artist: "AZULBIC",
-        duration: "04:01",
-        size: "7.1MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20azulbic%20-%20D-4IfssJEIA4prSbXme1XF8AY2qcncbh.mp3",
-        releaseId: "azulbic002"
-      },
-      {
-        id: 8,
-        title: "TRACK_F.MP3",
-        artist: "AZULBIC",
-        duration: "03:52",
-        size: "6.5MB",
-        file: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SOUNDLABS%20azulbic%20-%20F-cPxRkHq3epa1PCZztxrrYGrtEX03EA.mp3",
-        releaseId: "azulbic002"
-      }
-    ]
-  }
 ]
 
 const allTracksData = releasesData.flatMap(release => release.tracks)
-const DEFAULT_TRACK_ID = 6
-const defaultTrack = allTracksData.find(track => track.id === DEFAULT_TRACK_ID) ?? allTracksData[0]
-const defaultRelease = releasesData.find(release => release.id === defaultTrack.releaseId) ?? releasesData[0]
+const defaultTrack = allTracksData[0] ?? null
+const defaultRelease = releasesData[0] ?? null
 const LINKED_RELEASE_ID = 'linked'
 const linkedReleaseBase: Release = {
   id: LINKED_RELEASE_ID,
@@ -164,7 +115,7 @@ const linkedReleaseBase: Release = {
   genre: 'EXTERNAL',
   format: 'FILE',
   size: 'LOCAL',
-  cover: '/placeholder.svg',
+  cover: 'placeholder.svg',
   tracks: [],
 }
 
@@ -319,7 +270,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     playNextTrackRef.current = () => {
       if (!currentTrack) return
       const currentList = allTracksRef.current
+      if (currentList.length === 0) return
       const currentIndex = currentList.findIndex(t => t.id === currentTrack.id)
+      if (currentIndex < 0) return
       const nextTrack = currentList[(currentIndex + 1) % currentList.length]
       if (nextTrack) setTimeout(() => play(nextTrack), 1000)
     }
