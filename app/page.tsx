@@ -6,6 +6,7 @@ import type { Track } from "@/lib/audio-context"
 import AsciiSpectrum from "@/components/ascii-spectrum"
 import Chu from "@/components/chu"
 import Oscilloscope from "@/components/oscilloscope"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 // ── theme ─────────────────────────────────────────────────────────────────────
 const PHOS = "#3ad07a"
@@ -23,6 +24,8 @@ const UI_ACCENT_DARK = "#1b344d"
 const UI_ACCENT_FAINT = "rgba(61,111,147,0.3)"
 const OSC_MODES = ["trace", "dual", "xy"] as const
 type OscMode = typeof OSC_MODES[number]
+const MOBILE_VISUALIZATIONS = ["scope", "spectrum", "chu"] as const
+type MobileVisualization = typeof MOBILE_VISUALIZATIONS[number]
 
 function formatTime(t: number): string {
   if (!t || isNaN(t)) return "0:00"
@@ -56,11 +59,13 @@ function VuMeter({ level }: { level: number }) {
 
 function PlayerApp() {
   const audio = useAudio()
+  const isMobile = useIsMobile()
   const [shuffleMode, setShuffleMode] = useState(false)
   const [fileInputError, setFileInputError] = useState<string | null>(null)
   const [scopeSensitivity, setScopeSensitivity] = useState(1.4)
   const [scopeLines, setScopeLines] = useState(3)
   const [scopeMode, setScopeMode] = useState<OscMode>("xy")
+  const [mobileVisualization, setMobileVisualization] = useState<MobileVisualization>("scope")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -72,7 +77,8 @@ function PlayerApp() {
 
   const togglePlay = () => {
     if (audio.isPlaying) audio.pause()
-    else audio.play(audio.currentTrack ?? audio.allTracks[0])
+    else if (audio.currentTrack ?? audio.allTracks[0]) audio.play(audio.currentTrack ?? audio.allTracks[0])
+    else fileInputRef.current?.click()
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,6 +97,7 @@ function PlayerApp() {
   }
 
   const playNext = () => {
+    if (audio.allTracks.length === 0) return
     const idx = audio.allTracks.findIndex((t) => t.id === audio.currentTrack?.id)
     if (shuffleMode) {
       const others = audio.allTracks.filter((t) => t.id !== audio.currentTrack?.id)
@@ -101,6 +108,7 @@ function PlayerApp() {
   }
 
   const playPrev = () => {
+    if (audio.allTracks.length === 0) return
     const idx = audio.allTracks.findIndex((t) => t.id === audio.currentTrack?.id)
     if (shuffleMode) {
       const others = audio.allTracks.filter((t) => t.id !== audio.currentTrack?.id)
@@ -210,7 +218,15 @@ function PlayerApp() {
 
   const trackList = (
     <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-      {audio.allTracks.map((track: Track, i: number) => {
+      {audio.allTracks.length === 0 ? (
+        <div style={{
+          padding: "14px 12px", color: UI_MUTED, fontSize: 10, lineHeight: 1.45,
+          borderBottom: `1px solid ${UI_LINE}`, letterSpacing: 1,
+        }}>
+          NO TRACKS LOADED<br />
+          USE INPUT AUDIO
+        </div>
+      ) : audio.allTracks.map((track: Track, i: number) => {
         const active = audio.currentTrack?.id === track.id
         const playing = active && audio.isPlaying
         return (
@@ -307,6 +323,351 @@ function PlayerApp() {
       </div>
     </div>
   )
+
+  const mobileModeControls = (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+      {OSC_MODES.map((mode) => {
+        const active = scopeMode === mode
+        return (
+          <button
+            key={mode}
+            onClick={() => setScopeMode(mode)}
+            style={{
+              ...ctrlBtn(),
+              minHeight: 38,
+              background: active ? UI_ACCENT_DARK : UI_PANEL,
+              color: active ? UI_BG : UI_ACCENT_DARK,
+              border: `1px solid ${active ? UI_ACCENT_DARK : UI_LINE}`,
+              boxShadow: active ? `0 0 10px ${UI_ACCENT_FAINT}` : "none",
+            }}
+          >
+            {mode.toUpperCase()}
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  const mobileScopeSliders = (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <label style={mobileSliderShell()}>
+        <span style={mobileSliderLabel()}>SENS</span>
+        <strong style={mobileSliderValue()}>{scopeSensitivity.toFixed(scopeSensitivity >= 2 ? 1 : 2)}x</strong>
+        <input
+          type="range"
+          min={0.25}
+          max={8}
+          step={0.05}
+          value={scopeSensitivity}
+          onChange={(e) => setScopeSensitivity(Number(e.target.value))}
+          style={mobileRangeStyle()}
+        />
+      </label>
+      <label style={mobileSliderShell()}>
+        <span style={mobileSliderLabel()}>LINES</span>
+        <strong style={mobileSliderValue()}>{scopeLines}</strong>
+        <input
+          type="range"
+          min={1}
+          max={5}
+          step={1}
+          value={scopeLines}
+          onChange={(e) => setScopeLines(Number(e.target.value))}
+          style={mobileRangeStyle()}
+        />
+      </label>
+    </div>
+  )
+
+  const mobileVisualizationControls = (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+      {MOBILE_VISUALIZATIONS.map((visualization) => {
+        const active = mobileVisualization === visualization
+        const label = visualization === "scope" ? "OSC" : visualization === "spectrum" ? "SPEC" : "CHU"
+        return (
+          <button
+            key={visualization}
+            onClick={() => setMobileVisualization(visualization)}
+            style={{
+              ...ctrlBtn(),
+              minHeight: 40,
+              background: active ? UI_ACCENT_DARK : UI_PANEL,
+              color: active ? UI_BG : UI_ACCENT_DARK,
+              border: `1px solid ${active ? UI_ACCENT_DARK : UI_LINE}`,
+              boxShadow: active ? `0 0 10px ${UI_ACCENT_FAINT}` : "none",
+              fontSize: 12,
+            }}
+          >
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  const mobileVisualizationPanel = (
+    <div style={{
+      width: "100%",
+      height: "100%",
+      border: `1px solid ${UI_ACCENT_DARK}`,
+      overflow: "hidden",
+      background: DISPLAY_BG,
+      boxShadow: `inset 0 0 70px rgba(0,0,0,0.82), 0 0 24px rgba(58,208,122,0.1)`,
+      display: "flex",
+      alignItems: "stretch",
+      justifyContent: "center",
+    }}>
+      {mobileVisualization === "scope" && (
+        <Oscilloscope
+          getAnalyser={audio.getAnalyser}
+          isPlaying={audio.isPlaying}
+          volume={audio.volume}
+          sensitivity={scopeSensitivity}
+          lines={scopeLines}
+          mode={scopeMode}
+        />
+      )}
+      {mobileVisualization === "spectrum" && <AsciiSpectrum {...visualizationProps} />}
+      {mobileVisualization === "chu" && (
+        <div style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: `radial-gradient(circle at 50% 45%, rgba(58,208,122,0.12), ${DISPLAY_BG} 66%)`,
+        }}>
+          <div className="chu-monitor-shell" style={{
+            width: "min(82vw, 360px)",
+            height: "min(82vw, 360px)",
+            maxHeight: "88%",
+            aspectRatio: "1 / 1",
+            position: "relative",
+            overflow: "hidden",
+            border: `1px solid ${PHOS_DIM}`,
+            background: "#020604",
+            boxShadow: `inset 0 0 34px rgba(0,0,0,0.88), inset 0 0 12px rgba(58,208,122,0.24), 0 0 26px ${PHOS_FAINT}`,
+          }}>
+            <div className="chu-monitor-screen" style={{
+              position: "absolute",
+              inset: 10,
+              overflow: "hidden",
+              background: "#050a06",
+            }}>
+              <Chu {...visualizationProps} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  const mobileTrackStrip = (
+    <div style={{
+      flexShrink: 0,
+      borderTop: `1px solid ${UI_LINE}`,
+      borderBottom: `1px solid ${UI_LINE}`,
+      background: UI_PANEL,
+      overflowX: "auto",
+      display: "flex",
+      gap: 7,
+      padding: "8px 10px",
+      WebkitOverflowScrolling: "touch",
+    }}>
+      {audio.allTracks.map((track: Track, i: number) => {
+        const active = audio.currentTrack?.id === track.id
+        return (
+          <button
+            key={track.id}
+            onClick={() => audio.play(track)}
+            style={{
+              flex: "0 0 min(74vw, 270px)",
+              minHeight: 46,
+              padding: "7px 9px",
+              textAlign: "left",
+              background: active ? UI_ACCENT_DARK : UI_BG,
+              color: active ? UI_BG : UI_TEXT,
+              border: `1px solid ${active ? UI_ACCENT_DARK : UI_LINE}`,
+              fontFamily: "ui-monospace, monospace",
+              letterSpacing: 0.4,
+            }}
+          >
+            <div style={{ display: "flex", gap: 7, alignItems: "center", fontSize: 10 }}>
+              <span style={{ opacity: 0.64 }}>{String(i + 1).padStart(2, "0")}</span>
+              <span style={{ fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {track.title}
+              </span>
+            </div>
+            <div style={{ marginTop: 4, fontSize: 9, opacity: 0.68, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {track.artist} · {track.duration}
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  const mobilePlayerDock = (
+    <div style={{
+      flexShrink: 0,
+      background: `linear-gradient(180deg, ${UI_PANEL}, ${UI_BG})`,
+      borderTop: `1px solid ${UI_LINE}`,
+      padding: "8px 10px max(8px, env(safe-area-inset-bottom))",
+      boxShadow: "0 -12px 24px rgba(18,26,36,0.16)",
+    }}>
+      {timeline}
+      <div style={{ display: "grid", gridTemplateColumns: "44px 1fr 44px", gap: 7, marginTop: 8 }}>
+        <button onClick={playPrev} style={{ ...ctrlBtn(), minHeight: 42 }}>|◀</button>
+        <button
+          onClick={togglePlay}
+          style={{
+            ...ctrlBtn(),
+            minHeight: 42,
+            background: UI_ACCENT_DARK,
+            color: UI_BG,
+            border: "none",
+            fontSize: 12,
+            boxShadow: audio.isPlaying ? `0 0 12px ${UI_ACCENT_FAINT}` : "none",
+          }}
+        >
+          {audio.isInitializing ? "···" : audio.isPlaying ? "▌▌ PAUSE" : "▶ PLAY"}
+        </button>
+        <button onClick={playNext} style={{ ...ctrlBtn(), minHeight: 42 }}>▶|</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.35fr", gap: 8, marginTop: 8, alignItems: "center" }}>
+        <button
+          onClick={() => setShuffleMode((s) => !s)}
+          style={{
+            ...ctrlBtn(),
+            minHeight: 34,
+            fontSize: 10,
+            background: shuffleMode ? UI_ACCENT_DARK : "transparent",
+            color: shuffleMode ? UI_BG : UI_ACCENT_DARK,
+          }}
+        >
+          SHUFFLE {shuffleMode ? "ON" : "OFF"}
+        </button>
+        <label style={{ display: "grid", gridTemplateColumns: "34px 1fr 34px", gap: 6, alignItems: "center", fontSize: 10, color: UI_MUTED }}>
+          <span>VOL</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={audio.volume}
+            onChange={(e) => audio.setVolume(Number(e.target.value))}
+            style={{ width: "100%", accentColor: UI_ACCENT_DARK }}
+          />
+          <span style={{ textAlign: "right", color: UI_ACCENT_DARK }}>{audio.volume}%</span>
+        </label>
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <div style={{
+        width: "100vw",
+        height: "100dvh",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        background: UI_BG,
+        color: UI_TEXT,
+        fontFamily: "ui-monospace, monospace",
+        fontSize: 12,
+        position: "relative",
+      }}>
+        <div style={{
+          height: 38,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "0 10px",
+          borderBottom: `1px solid ${UI_LINE}`,
+          background: UI_PANEL,
+          letterSpacing: 1,
+        }}>
+          <span style={{ fontWeight: 900, letterSpacing: 3, color: UI_ACCENT_DARK }}>A.S.A.</span>
+          <span style={{ color: UI_LINE }}>▐</span>
+          <span style={{ minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 800 }}>
+            {audio.currentTrack?.title ?? "NO TRACK"}
+          </span>
+          <VuMeter level={audio.level} />
+        </div>
+
+        <div style={{
+          flexShrink: 0,
+          padding: "8px 10px",
+          display: "grid",
+          gridTemplateColumns: "54px 1fr auto",
+          gap: 9,
+          alignItems: "center",
+          borderBottom: `1px solid ${UI_LINE}`,
+          background: UI_PANEL,
+        }}>
+          <div style={{ width: 54, height: 54, background: UI_PANEL_DARK, border: `1px solid ${UI_LINE}`, overflow: "hidden" }}>
+            <img
+              src={audio.currentRelease?.cover ?? "placeholder.svg"}
+              alt="cover"
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+            />
+          </div>
+          <div style={{ minWidth: 0, lineHeight: 1.35 }}>
+            <div style={{ fontSize: 10, color: UI_MUTED, letterSpacing: 1 }}>NOW PLAYING</div>
+            <div style={{ color: UI_TEXT, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {audio.currentTrack?.artist ?? "—"}
+            </div>
+            <div style={{ color: UI_ACCENT_DARK, fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {audio.currentRelease?.title ?? "LOCAL AUDIO"} · {statusLabel}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ ...ctrlBtn(), width: 58, minHeight: 38, fontSize: 10, background: UI_BG }}
+          >
+            INPUT
+          </button>
+        </div>
+
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{
+            flexShrink: 0,
+            padding: "8px 10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            borderBottom: `1px solid ${UI_LINE}`,
+            background: UI_BG,
+          }}>
+            {mobileVisualizationControls}
+            {mobileVisualization === "scope" && (
+              <>
+                {mobileModeControls}
+                {mobileScopeSliders}
+              </>
+            )}
+          </div>
+
+          <div style={{ flex: 1, minHeight: 260, padding: 8, background: UI_BG }}>
+            {mobileVisualizationPanel}
+          </div>
+
+          {mobileTrackStrip}
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={handleFileInput}
+          style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+        />
+        {mobilePlayerDock}
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -669,6 +1030,46 @@ function ctrlBtn(): React.CSSProperties {
     flex: 1, background: "transparent", color: UI_ACCENT_DARK, border: `1px solid ${UI_LINE}`,
     padding: "8px 0", fontSize: 11, fontWeight: 700, cursor: "pointer", letterSpacing: 1,
     fontFamily: "ui-monospace, monospace",
+  }
+}
+
+function mobileSliderShell(): React.CSSProperties {
+  return {
+    minHeight: 66,
+    padding: "8px 9px",
+    display: "grid",
+    gridTemplateColumns: "1fr auto",
+    gap: "6px 8px",
+    alignItems: "center",
+    background: UI_PANEL,
+    border: `1px solid ${UI_LINE}`,
+    boxSizing: "border-box",
+  }
+}
+
+function mobileSliderLabel(): React.CSSProperties {
+  return {
+    color: UI_MUTED,
+    fontSize: 10,
+    letterSpacing: 1.5,
+  }
+}
+
+function mobileSliderValue(): React.CSSProperties {
+  return {
+    color: UI_ACCENT_DARK,
+    fontSize: 11,
+    letterSpacing: 1,
+    textAlign: "right",
+  }
+}
+
+function mobileRangeStyle(): React.CSSProperties {
+  return {
+    gridColumn: "1 / -1",
+    width: "100%",
+    accentColor: UI_ACCENT_DARK,
+    cursor: "pointer",
   }
 }
 
