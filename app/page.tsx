@@ -26,6 +26,8 @@ const OSC_MODES = ["trace", "dual", "xy"] as const
 type OscMode = typeof OSC_MODES[number]
 const MOBILE_VISUALIZATIONS = ["scope", "spectrum", "chu"] as const
 type MobileVisualization = typeof MOBILE_VISUALIZATIONS[number]
+const DESKTOP_LEFT_WIDTH = 232
+const DESKTOP_RIGHT_WIDTH = 244
 
 function formatTime(t: number): string {
   if (!t || isNaN(t)) return "0:00"
@@ -284,9 +286,58 @@ function PlayerApp() {
     </div>
   )
 
+  const desktopChuMonitor = (
+    <div style={{
+      height: "clamp(130px, 15vh, 154px)",
+      flexShrink: 0,
+      borderBottom: `1px solid ${UI_LINE}`,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      background: `radial-gradient(circle at 50% 45%, ${UI_PANEL}, ${UI_BG})`,
+    }}>
+      <div style={{
+        height: 28,
+        flexShrink: 0,
+        borderBottom: `1px solid ${UI_LINE}`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: UI_ACCENT_DARK,
+        fontWeight: 800,
+        letterSpacing: 2,
+        fontSize: 10,
+      }}>
+        CHU MONITOR
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 8 }}>
+        <div className="chu-monitor-shell" style={{
+          width: "clamp(72px, 6.2vw, 104px)",
+          height: "clamp(72px, 6.2vw, 104px)",
+          flex: "0 0 auto",
+          aspectRatio: "1 / 1",
+          position: "relative",
+          overflow: "hidden",
+          border: `1px solid ${PHOS_DIM}`,
+          background: "#020604",
+          boxShadow: `inset 0 0 28px rgba(0,0,0,0.86), inset 0 0 10px rgba(58,208,122,0.2), 0 0 18px ${PHOS_FAINT}`,
+        }}>
+          <div className="chu-monitor-screen" style={{
+            position: "absolute",
+            inset: 8,
+            overflow: "hidden",
+            background: "#050a06",
+          }}>
+            <Chu {...visualizationProps} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   const scopeControlsPanel = (
     <div style={{ flexShrink: 0, borderBottom: `1px solid ${UI_LINE}` }}>
-      <div style={{ height: 170, borderBottom: `1px solid ${UI_LINE}` }}>
+      <div style={{ height: "clamp(88px, 12vh, 118px)", borderBottom: `1px solid ${UI_LINE}` }}>
         <ScopeKnob
           label="MODE"
           value={OSC_MODES.indexOf(scopeMode)}
@@ -295,10 +346,11 @@ function PlayerApp() {
           steps={OSC_MODES.length}
           resetValue={OSC_MODES.indexOf("xy")}
           display={scopeMode.toUpperCase()}
+          size={64}
           onChange={(value) => setScopeMode(OSC_MODES[Math.round(value)] ?? "trace")}
         />
       </div>
-      <div style={{ height: 148, borderBottom: `1px solid ${UI_LINE}` }}>
+      <div style={{ height: "clamp(88px, 12vh, 118px)", borderBottom: `1px solid ${UI_LINE}` }}>
         <ScopeKnob
           label="SENS"
           value={scopeSensitivity}
@@ -306,10 +358,11 @@ function PlayerApp() {
           max={8}
           resetValue={1.4}
           display={`${scopeSensitivity.toFixed(scopeSensitivity >= 2 ? 1 : 2)}x`}
+          size={64}
           onChange={setScopeSensitivity}
         />
       </div>
-      <div style={{ height: 148 }}>
+      <div style={{ height: "clamp(88px, 12vh, 118px)" }}>
         <ScopeKnob
           label="LINES"
           value={scopeLines}
@@ -318,6 +371,7 @@ function PlayerApp() {
           steps={5}
           resetValue={3}
           display={`${scopeLines} ${scopeLines === 1 ? "LINE" : "LINES"}`}
+          size={64}
           onChange={(value) => setScopeLines(Math.round(value))}
         />
       </div>
@@ -711,7 +765,7 @@ function PlayerApp() {
       <div style={{ flex: 1, overflow: "hidden", display: "flex", minHeight: 0 }}>
         {/* ══ LEFT ══ */}
         <div style={{
-          width: 232, flexShrink: 0, borderRight: `1px solid ${UI_LINE}`,
+          width: DESKTOP_LEFT_WIDTH, flexShrink: 0, borderRight: `1px solid ${UI_LINE}`,
           display: "flex", flexDirection: "column", overflow: "hidden",
           background: UI_PANEL,
         }}>
@@ -799,10 +853,11 @@ function PlayerApp() {
 
         {/* ══ RIGHT ══ */}
         <div style={{
-          width: 212, flexShrink: 0, borderLeft: `1px solid ${UI_LINE}`,
+          width: DESKTOP_RIGHT_WIDTH, flexShrink: 0, borderLeft: `1px solid ${UI_LINE}`,
           display: "flex", flexDirection: "column", overflow: "hidden",
           background: UI_PANEL,
         }}>
+          {desktopChuMonitor}
           {scopeControlsPanel}
           {fileAudioPanel}
           <div style={{ flex: 1, minHeight: 0 }} />
@@ -811,12 +866,12 @@ function PlayerApp() {
 
       {/* ── SECONDARY VISUALIZER + PLAYER TIMELINE ── */}
       <div style={{
-        height: "clamp(185px, 26vh, 280px)", flexShrink: 0, borderTop: `1px solid ${UI_LINE}`,
+        height: "clamp(138px, 19vh, 220px)", flexShrink: 0, borderTop: `1px solid ${UI_LINE}`,
         display: "flex", alignItems: "stretch",
         background: `linear-gradient(180deg, ${UI_PANEL}, ${UI_PANEL_DARK})`,
       }}>
         <div style={{
-          width: 232, flexShrink: 0, borderRight: `1px solid ${UI_LINE}`,
+          width: DESKTOP_LEFT_WIDTH, flexShrink: 0, borderRight: `1px solid ${UI_LINE}`,
           background: UI_PANEL,
         }}>
           <div style={{ height: 42, borderBottom: `1px solid ${UI_LINE}` }} />
@@ -843,35 +898,12 @@ function PlayerApp() {
           </div>
         </div>
         <div style={{
-          width: 212, flexShrink: 0, borderLeft: `1px solid ${UI_LINE}`,
+          width: DESKTOP_RIGHT_WIDTH, flexShrink: 0, borderLeft: `1px solid ${UI_LINE}`,
           display: "flex", flexDirection: "column", overflow: "hidden",
           background: UI_PANEL,
         }}>
           <div style={{ height: 42, flexShrink: 0, borderBottom: `1px solid ${UI_LINE}` }} />
-          <div style={{
-            height: 30, flexShrink: 0, borderBottom: `1px solid ${UI_LINE}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: UI_ACCENT_DARK, fontWeight: 800, letterSpacing: 2, fontSize: 10,
-          }}>
-            CHU MONITOR
-          </div>
-          <div style={{
-            flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center",
-            background: `radial-gradient(circle at 50% 45%, ${UI_PANEL}, ${UI_BG})`,
-          }}>
-            <div className="chu-monitor-shell" style={{
-              width: 150, height: 150, position: "relative", overflow: "hidden",
-              border: `1px solid ${PHOS_DIM}`, background: "#020604",
-              boxShadow: `inset 0 0 28px rgba(0,0,0,0.86), inset 0 0 10px rgba(58,208,122,0.2), 0 0 18px ${PHOS_FAINT}`,
-            }}>
-              <div className="chu-monitor-screen" style={{
-                position: "absolute", inset: 8, overflow: "hidden",
-                background: "#050a06",
-              }}>
-                <Chu {...visualizationProps} />
-              </div>
-            </div>
-          </div>
+          <div style={{ flex: 1, minHeight: 0, borderBottom: `1px solid ${UI_LINE}` }} />
         </div>
       </div>
     </div>
@@ -886,6 +918,7 @@ function ScopeKnob({
   steps,
   resetValue,
   display,
+  size = 112,
   onChange,
 }: {
   label: string
@@ -895,6 +928,7 @@ function ScopeKnob({
   steps?: number
   resetValue?: number
   display: string
+  size?: number
   onChange: (value: number) => void
 }) {
   const dragRef = useRef<{ y: number; value: number } | null>(null)
@@ -902,9 +936,12 @@ function ScopeKnob({
   const clampedPct = Math.max(0, Math.min(1, pct))
   const angle = -135 + clampedPct * 270
   const tickCount = steps ?? 17
-  const knobSize = 112
+  const knobSize = size
   const tickRadius = knobSize * 0.45
   const needleHeight = knobSize * 0.38
+  const compact = knobSize < 90
+  const tickMajor = Math.max(8, knobSize * 0.12)
+  const tickMinor = Math.max(5, knobSize * 0.07)
   const commitValue = (raw: number) => {
     const bounded = Math.max(min, Math.min(max, raw))
     if (steps && steps > 1) {
@@ -925,10 +962,10 @@ function ScopeKnob({
   return (
     <div style={{
       width: "100%", height: "100%", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 6, padding: 8,
+      alignItems: "center", justifyContent: "center", gap: compact ? 2 : 6, padding: compact ? "4px 8px" : 8,
       boxSizing: "border-box", fontFamily: "ui-monospace, monospace",
     }}>
-      <div style={{ color: UI_MUTED, fontSize: 10, letterSpacing: 2 }}>{label}</div>
+      <div style={{ color: UI_MUTED, fontSize: compact ? 9 : 10, lineHeight: 1, letterSpacing: 2 }}>{label}</div>
       <div
         className="scope-knob-shell"
         onPointerDown={(e) => {
@@ -967,17 +1004,17 @@ function ScopeKnob({
           WebkitMask: "radial-gradient(circle, transparent 64%, black 66%)",
         }} />
         <div className="scope-knob-inner" style={{
-          position: "absolute", inset: 10,
+          position: "absolute", inset: Math.max(6, knobSize * 0.09),
           border: `1px solid ${UI_ACCENT_FAINT}`,
           boxShadow: "inset 0 0 18px rgba(18,26,36,0.3)",
         }} />
         <div className="scope-knob-needle" style={{
-          position: "absolute", left: "50%", top: "50%", width: 5, height: needleHeight,
+          position: "absolute", left: "50%", top: "50%", width: compact ? 4 : 5, height: needleHeight,
           transformOrigin: "50% 100%", transform: `translate(-50%, -100%) rotate(${angle}deg)`,
           background: UI_ACCENT_DARK, boxShadow: `0 0 10px ${UI_ACCENT_FAINT}`,
         }} />
         <div className="scope-knob-hub" style={{
-          position: "absolute", left: "50%", top: "50%", width: 24, height: 24,
+          position: "absolute", left: "50%", top: "50%", width: compact ? 18 : 24, height: compact ? 18 : 24,
           transform: "translate(-50%, -50%)",
           background: "radial-gradient(circle at 35% 30%, #f8fbff, #98a9ba 48%, #1b344d 100%)",
           boxShadow: `0 0 12px ${UI_ACCENT_FAINT}, inset 0 0 9px rgba(18,26,36,0.35)`,
@@ -990,7 +1027,7 @@ function ScopeKnob({
               key={i}
               style={{
                 position: "absolute", left: "50%", top: "50%", width: 2,
-                height: i === 0 || i === tickCount - 1 || (steps && i === 1) ? 14 : 8,
+                height: i === 0 || i === tickCount - 1 || (steps && i === 1) ? tickMajor : tickMinor,
                 background: active ? UI_ACCENT_DARK : "rgba(18,26,36,0.22)",
                 boxShadow: active ? `0 0 5px ${UI_ACCENT_FAINT}` : "none",
                 transformOrigin: `50% ${tickRadius}px`, transform: `translate(-50%, -${tickRadius}px) rotate(${tickAngle}deg)`,
@@ -1000,7 +1037,7 @@ function ScopeKnob({
         })}
       </div>
       <div style={{
-        minHeight: 18, maxWidth: "100%", color: UI_ACCENT_DARK, fontSize: 12, fontWeight: 800,
+        minHeight: compact ? 14 : 18, maxWidth: "100%", color: UI_ACCENT_DARK, fontSize: compact ? 11 : 12, lineHeight: compact ? "14px" : "18px", fontWeight: 800,
         letterSpacing: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>
         {display}
