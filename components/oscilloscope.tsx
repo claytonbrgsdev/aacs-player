@@ -166,7 +166,7 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
     const drawXyTrace = (playing: boolean, sensitivityValue: number, lineCountValue: number) => {
       const cx = wCss / 2
       const cy = hCss / 2 + 4
-      const radius = Math.min(wCss - 96, hCss - 62) * 0.46
+      const radius = Math.max(12, Math.min(Math.max(26, wCss - 96), Math.max(26, hCss - 62)) * 0.46)
       const gain = Math.min(6.2, Math.max(0.32, Math.pow(sensitivityValue, 0.92)))
       const beamWidth = 1.16
       const glowScale = 1
