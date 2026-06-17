@@ -19,9 +19,18 @@ const MIN_FREQ = 20
 const MAX_FREQ = 20000
 const NYQUIST = 22050
 const FFT_BINS = 1024
+const MAX_DPR = 1.5
+const FRAME_MS = 1000 / 30
 
 const PEAK_CHAR = "━"
 const TRACE_CHAR = "•"
+const UI_BG = "#aeb7c2"
+const UI_PANEL = "#c4ccd5"
+const UI_TEXT = "#121a24"
+const UI_MUTED = "rgba(18,26,36,0.58)"
+const UI_LINE = "rgba(18,26,36,0.28)"
+const UI_ACCENT_DARK = "#1b344d"
+const UI_ACCENT_FAINT = "rgba(61,111,147,0.3)"
 
 const FREQ_LABELS: [number, string][] = [
   [30, "30"], [60, "60"], [120, "120"], [250, "250"], [500, "500"],
@@ -83,6 +92,7 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
   const peakHoldRef = useRef<Float32Array>(new Float32Array(COLS))
   const floorRef = useRef<Float32Array>(new Float32Array(COLS))
   const curveRef = useRef<Float32Array>(new Float32Array(COLS))
+  const targetsRef = useRef<Float32Array>(new Float32Array(COLS))
   const freqBuf = useRef<Uint8Array>(new Uint8Array(FFT_BINS))
   const timeBuf = useRef<Uint8Array>(new Uint8Array(2048))
 
@@ -98,7 +108,7 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
     const canvas = canvasRef.current
     const wrap = wrapRef.current
     if (!canvas || !wrap) return
-    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1)
     const w = wrap.clientWidth
     const h = wrap.clientHeight
     canvas.width = Math.round(w * dpr)
@@ -120,13 +130,15 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
   useEffect(() => {
     let raf = 0
     let t0 = performance.now()
+    let lastPaint = 0
+    const ctx = canvasRef.current?.getContext("2d")
 
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw)
       const canvas = canvasRef.current
-      if (!canvas) return
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return
+      if (!canvas || !ctx) return
+      if (now - lastPaint < FRAME_MS) return
+      lastPaint = now
       const { cw, ch } = sizeRef.current
       if (cw === 0 || ch === 0) return
 
@@ -136,7 +148,7 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
       t0 = now
 
       // 1. pull live data → per-column targets
-      const targets = new Float32Array(COLS)
+      const targets = targetsRef.current
       if (analyser && playing) {
         analyser.getByteFrequencyData(freqBuf.current as Uint8Array<ArrayBuffer>)
         const f = freqBuf.current
@@ -264,7 +276,7 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
 
     if (!playing) {
       const scan = Math.floor((now * 0.006) % ROWS)
-      ctx.fillStyle = "rgba(255,194,74,0.07)"
+      ctx.fillStyle = "rgba(58,208,122,0.08)"
       for (let col = 0; col < COLS; col += 4) ctx.fillText("─", col * cw, scan * ch)
     }
   }
@@ -355,15 +367,16 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
   const MODE_LABELS: Record<Mode, string> = { bars: "BARS", mirror: "MIRROR", wave: "WAVE" }
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: "#040806" }}>
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: UI_BG }}>
       {/* header */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "3px 8px", borderBottom: "1px solid rgba(60,180,100,0.25)",
-        fontSize: 10, fontFamily: "ui-monospace, monospace", color: "#3ad07a", letterSpacing: "1px",
+        padding: "3px 8px", borderBottom: `1px solid ${UI_LINE}`,
+        fontSize: 10, fontFamily: "ui-monospace, monospace", color: UI_ACCENT_DARK, letterSpacing: "1px",
         flexShrink: 0,
+        background: `linear-gradient(180deg, ${UI_PANEL}, ${UI_BG})`,
       }}>
-        <span style={{ opacity: 0.65 }}>SPECTRUM · 44.1kHz · FFT 2048 · PRECISION</span>
+        <span style={{ color: UI_MUTED }}>SPECTRUM · 44.1kHz · FFT 2048 · PRECISION</span>
         <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
           {(["bars", "mirror", "wave"] as Mode[]).map((mm) => (
             <button
@@ -372,11 +385,11 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
               style={{
                 fontFamily: "ui-monospace, monospace", fontSize: 10, padding: "1px 8px", cursor: "pointer",
                 border: "1px solid",
-                borderColor: mode === mm ? "#3ad07a" : "rgba(60,180,100,0.3)",
-                background: mode === mm ? "#3ad07a" : "transparent",
-                color: mode === mm ? "#040806" : "#3ad07a",
+                borderColor: mode === mm ? UI_ACCENT_DARK : UI_LINE,
+                background: mode === mm ? UI_ACCENT_DARK : "transparent",
+                color: mode === mm ? UI_BG : UI_ACCENT_DARK,
                 fontWeight: mode === mm ? 700 : 400, letterSpacing: "1px",
-                boxShadow: mode === mm ? "0 0 8px rgba(58,208,122,0.5)" : "none",
+                boxShadow: mode === mm ? `0 0 8px ${UI_ACCENT_FAINT}` : "none",
               }}
             >
               {MODE_LABELS[mm]}
@@ -384,14 +397,14 @@ export default function AsciiSpectrum({ getAnalyser, isPlaying, volume }: Props)
           ))}
           <span style={{
             marginLeft: 6, width: 6, height: 6, borderRadius: "50%",
-            background: isPlaying ? "#3aff8a" : "#1a3a24",
-            boxShadow: isPlaying ? "0 0 6px #3aff8a" : "none", display: "inline-block",
+            background: isPlaying ? UI_ACCENT_DARK : "rgba(18,26,36,0.24)",
+            boxShadow: isPlaying ? `0 0 6px ${UI_ACCENT_FAINT}` : "none", display: "inline-block",
           }} />
         </div>
       </div>
 
       {/* canvas field with CRT bloom + scanlines */}
-      <div ref={wrapRef} style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div ref={wrapRef} style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden", background: "#040806" }}>
         <canvas
           ref={canvasRef}
           style={{

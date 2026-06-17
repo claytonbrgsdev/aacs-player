@@ -44,7 +44,7 @@ export default function Chu({ getAnalyser, isPlaying }: Props) {
     import("p5").then(({ default: P5 }) => {
       if (disposed || !hostRef.current) return
 
-      const sketch = (p: p5Type) => {
+        const sketch = (p: p5Type) => {
         const freq = new Uint8Array(1024)
         let amp = 0, bass = 0, prevBass = 0, energy = 0, avgE = 0
         let state: State = "sleep"
@@ -53,7 +53,7 @@ export default function Chu({ getAnalyser, isPlaying }: Props) {
         let bob = 0, squash = 0
         let blink = 0
 
-        const RING = 48
+        const RING = 32
         const ringVals = new Float32Array(RING)
         type Ripple = { x: number; y: number; r: number; life: number; strength: number }
         type Dust = { x: number; y: number; vx: number; vy: number; life: number; size: number }
@@ -62,9 +62,10 @@ export default function Chu({ getAnalyser, isPlaying }: Props) {
 
         p.setup = () => {
           const el = hostRef.current!
+          p.pixelDensity(1)
           const c = p.createCanvas(el.clientWidth, el.clientHeight)
           c.parent(el)
-          p.frameRate(60)
+          p.frameRate(30)
           p.noStroke()
         }
         p.windowResized = () => {
@@ -284,10 +285,10 @@ export default function Chu({ getAnalyser, isPlaying }: Props) {
           drawPose(frame, cell, 0)
 
           // tiny audio-reactive highlights along the sprite body
-          if (playing && amp > 0.025) {
+          if (playing && amp > 0.025 && p.frameCount % 2 === 0) {
             g.globalCompositeOperation = "lighter"
             p.fill(160, 255, 190, 30 + amp * 120)
-            const glints = 4 + Math.floor(amp * 12)
+            const glints = 3 + Math.floor(amp * 8)
             for (let i = 0; i < glints; i++) {
               const gx = p.random(-frame.w * cell * 0.34, frame.w * cell * 0.34)
               const gy = p.random(-frame.h * cell * 0.82, -frame.h * cell * 0.18)

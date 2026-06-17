@@ -1,28 +1,26 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
-import dynamic from "next/dynamic"
 import { AudioProvider, useAudio } from "@/lib/audio-context"
 import type { Track } from "@/lib/audio-context"
-
-const AsciiSpectrum = dynamic(() => import("@/components/ascii-spectrum"), { ssr: false })
-const Chu = dynamic(() => import("@/components/chu"), { ssr: false })
-const Oscilloscope = dynamic(() => import("@/components/oscilloscope"), { ssr: false })
+import AsciiSpectrum from "@/components/ascii-spectrum"
+import Chu from "@/components/chu"
+import Oscilloscope from "@/components/oscilloscope"
 
 // ── theme ─────────────────────────────────────────────────────────────────────
 const PHOS = "#3ad07a"
 const PHOS_DIM = "rgba(58,208,122,0.45)"
 const PHOS_FAINT = "rgba(58,208,122,0.18)"
 const DISPLAY_BG = "#040705"
-const UI_BG = "#f3ead4"
-const UI_PANEL = "#e7dbc0"
-const UI_PANEL_DARK = "#d5c29b"
-const UI_TEXT = "#2e2619"
-const UI_MUTED = "rgba(46,38,25,0.58)"
-const UI_LINE = "rgba(46,38,25,0.28)"
-const UI_ACCENT = "#8b5e2f"
-const UI_ACCENT_DARK = "#5b3b1d"
-const UI_ACCENT_FAINT = "rgba(139,94,47,0.28)"
+const UI_BG = "#aeb7c2"
+const UI_PANEL = "#c4ccd5"
+const UI_PANEL_DARK = "#7f8b99"
+const UI_TEXT = "#121a24"
+const UI_MUTED = "rgba(18,26,36,0.58)"
+const UI_LINE = "rgba(18,26,36,0.28)"
+const UI_ACCENT = "#3d6f93"
+const UI_ACCENT_DARK = "#1b344d"
+const UI_ACCENT_FAINT = "rgba(61,111,147,0.3)"
 const OSC_MODES = ["trace", "dual", "xy"] as const
 type OscMode = typeof OSC_MODES[number]
 
@@ -39,7 +37,7 @@ function VuMeter({ level }: { level: number }) {
     <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
       {Array.from({ length: SEG }).map((_, i) => {
         const on = i < lit
-        const col = i < 9 ? UI_ACCENT_DARK : i < 13 ? UI_ACCENT : "#9f3d2f"
+        const col = i < 9 ? UI_ACCENT_DARK : i < 13 ? UI_ACCENT : "#7b4ba0"
         return (
           <span
             key={i}
@@ -61,6 +59,7 @@ function PlayerApp() {
   const [shuffleMode, setShuffleMode] = useState(false)
   const [fileInputError, setFileInputError] = useState<string | null>(null)
   const [scopeSensitivity, setScopeSensitivity] = useState(1.4)
+  const [scopeLines, setScopeLines] = useState(3)
   const [scopeMode, setScopeMode] = useState<OscMode>("xy")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -283,7 +282,7 @@ function PlayerApp() {
           onChange={(value) => setScopeMode(OSC_MODES[Math.round(value)] ?? "trace")}
         />
       </div>
-      <div style={{ height: 170 }}>
+      <div style={{ height: 148, borderBottom: `1px solid ${UI_LINE}` }}>
         <ScopeKnob
           label="SENS"
           value={scopeSensitivity}
@@ -292,6 +291,18 @@ function PlayerApp() {
           resetValue={1.4}
           display={`${scopeSensitivity.toFixed(scopeSensitivity >= 2 ? 1 : 2)}x`}
           onChange={setScopeSensitivity}
+        />
+      </div>
+      <div style={{ height: 148 }}>
+        <ScopeKnob
+          label="LINES"
+          value={scopeLines}
+          min={1}
+          max={5}
+          steps={5}
+          resetValue={3}
+          display={`${scopeLines} ${scopeLines === 1 ? "LINE" : "LINES"}`}
+          onChange={(value) => setScopeLines(Math.round(value))}
         />
       </div>
     </div>
@@ -306,11 +317,11 @@ function PlayerApp() {
       {/* global vignette + faint scanlines */}
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none", zIndex: 50,
-        background: "radial-gradient(ellipse at center, rgba(255,255,255,0) 62%, rgba(89,62,34,0.16) 100%)",
+        background: "radial-gradient(ellipse at center, rgba(255,255,255,0) 62%, rgba(18,26,36,0.22) 100%)",
       }} />
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none", zIndex: 50, opacity: 0.18,
-        background: "repeating-linear-gradient(0deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(89,62,34,0.18) 3px)",
+        background: "repeating-linear-gradient(0deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(18,26,36,0.22) 3px)",
       }} />
 
       {/* ── HEADER ── */}
@@ -418,6 +429,7 @@ function PlayerApp() {
                 isPlaying={audio.isPlaying}
                 volume={audio.volume}
                 sensitivity={scopeSensitivity}
+                lines={scopeLines}
                 mode={scopeMode}
               />
             </div>
@@ -442,47 +454,60 @@ function PlayerApp() {
         display: "flex", alignItems: "stretch",
         background: `linear-gradient(180deg, ${UI_PANEL}, ${UI_PANEL_DARK})`,
       }}>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{
+          width: 232, flexShrink: 0, borderRight: `1px solid ${UI_LINE}`,
+          background: UI_PANEL,
+        }}>
+          <div style={{ height: 42, borderBottom: `1px solid ${UI_LINE}` }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden", background: UI_BG }}>
           {timeline}
           <div style={{
             height: 30, flexShrink: 0, borderBottom: `1px solid ${UI_LINE}`,
             display: "flex", alignItems: "center", padding: "0 10px", gap: 6,
           }}>
             <span style={{ color: UI_ACCENT_DARK, fontWeight: 800, letterSpacing: 2 }}>SPECTRUM</span>
-            <span style={{ color: UI_LINE }}>▐</span>
-            <span style={{ color: UI_ACCENT_DARK, fontWeight: 800, letterSpacing: 2 }}>CHU MONITOR</span>
             <span style={{ marginLeft: "auto", fontSize: 9, color: UI_MUTED, letterSpacing: 1 }}>
-              SECONDARY DISPLAYS · THREE-VIEW MODE
+              SECONDARY DISPLAY · MATCH OSCILLOSCOPE WIDTH
             </span>
           </div>
-          <div style={{ flex: 1, minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: 0, padding: "0 18px 8px", boxSizing: "border-box" }}>
             <div style={{
               width: "100%", height: "100%", border: `1px solid ${UI_ACCENT_DARK}`,
               borderTop: "none", boxSizing: "border-box", overflow: "hidden",
-              display: "flex", alignItems: "stretch",
-              boxShadow: `inset 0 0 40px rgba(0,0,0,0.72)`,
-              background: DISPLAY_BG,
+              background: UI_BG,
             }}>
-              <div style={{ flex: 1, minWidth: 0, height: "100%", overflow: "hidden" }}>
-                <AsciiSpectrum {...visualizationProps} />
-              </div>
-              <div style={{
-                width: 182, flexShrink: 0, borderLeft: `1px solid ${UI_ACCENT_DARK}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "radial-gradient(circle at 50% 45%, rgba(58,208,122,0.07), rgba(0,0,0,0.42))",
+              <AsciiSpectrum {...visualizationProps} />
+            </div>
+          </div>
+        </div>
+        <div style={{
+          width: 212, flexShrink: 0, borderLeft: `1px solid ${UI_LINE}`,
+          display: "flex", flexDirection: "column", overflow: "hidden",
+          background: UI_PANEL,
+        }}>
+          <div style={{ height: 42, flexShrink: 0, borderBottom: `1px solid ${UI_LINE}` }} />
+          <div style={{
+            height: 30, flexShrink: 0, borderBottom: `1px solid ${UI_LINE}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: UI_ACCENT_DARK, fontWeight: 800, letterSpacing: 2, fontSize: 10,
+          }}>
+            CHU MONITOR
+          </div>
+          <div style={{
+            flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center",
+            background: `radial-gradient(circle at 50% 45%, ${UI_PANEL}, ${UI_BG})`,
+          }}>
+            <div className="chu-monitor-shell" style={{
+              width: 150, height: 150, position: "relative", overflow: "hidden",
+              border: `1px solid ${PHOS_DIM}`, background: "#020604",
+              boxShadow: `inset 0 0 28px rgba(0,0,0,0.86), inset 0 0 10px rgba(58,208,122,0.2), 0 0 18px ${PHOS_FAINT}`,
+            }}>
+              <div className="chu-monitor-screen" style={{
+                position: "absolute", inset: 8, overflow: "hidden",
+                background: "#050a06",
               }}>
-                <div className="chu-monitor-shell" style={{
-                  width: 150, height: 150, position: "relative", overflow: "hidden",
-                  border: `1px solid ${PHOS_DIM}`, background: "#020604",
-                  boxShadow: `inset 0 0 28px rgba(0,0,0,0.86), inset 0 0 10px rgba(58,208,122,0.2), 0 0 18px ${PHOS_FAINT}`,
-                }}>
-                  <div className="chu-monitor-screen" style={{
-                    position: "absolute", inset: 8, overflow: "hidden",
-                    background: "#050a06",
-                  }}>
-                    <Chu {...visualizationProps} />
-                  </div>
-                </div>
+                <Chu {...visualizationProps} />
               </div>
             </div>
           </div>
@@ -568,22 +593,22 @@ function ScopeKnob({
         style={{
           width: knobSize, height: knobSize, minWidth: knobSize, minHeight: knobSize,
           flex: `0 0 ${knobSize}px`, aspectRatio: "1 / 1", cursor: "ns-resize", position: "relative",
-          background: "radial-gradient(circle at 32% 28%, #f8f0dc, #cdb78c 48%, #6d4d2b 100%)",
+          background: "radial-gradient(circle at 32% 28%, #edf3f7, #9aa8b7 48%, #354557 100%)",
           border: `1px solid ${UI_ACCENT_DARK}`,
-          boxShadow: `inset -10px -14px 28px rgba(67,44,22,0.42), inset 8px 8px 20px rgba(255,255,255,0.32), 0 0 18px ${UI_ACCENT_FAINT}`,
+          boxShadow: `inset -10px -14px 28px rgba(18,26,36,0.38), inset 8px 8px 20px rgba(255,255,255,0.38), 0 0 18px ${UI_ACCENT_FAINT}`,
           touchAction: "none",
         }}
       >
         <div className="scope-knob-ring" style={{
           position: "absolute", inset: -4,
-          background: `conic-gradient(from 225deg, ${UI_ACCENT_DARK} 0deg, ${UI_ACCENT} ${clampedPct * 270}deg, rgba(46,38,25,0.16) ${clampedPct * 270}deg, rgba(46,38,25,0.16) 270deg, transparent 270deg)`,
+          background: `conic-gradient(from 225deg, ${UI_ACCENT_DARK} 0deg, ${UI_ACCENT} ${clampedPct * 270}deg, rgba(18,26,36,0.16) ${clampedPct * 270}deg, rgba(18,26,36,0.16) 270deg, transparent 270deg)`,
           mask: "radial-gradient(circle, transparent 64%, black 66%)",
           WebkitMask: "radial-gradient(circle, transparent 64%, black 66%)",
         }} />
         <div className="scope-knob-inner" style={{
           position: "absolute", inset: 10,
           border: `1px solid ${UI_ACCENT_FAINT}`,
-          boxShadow: "inset 0 0 18px rgba(67,44,22,0.28)",
+          boxShadow: "inset 0 0 18px rgba(18,26,36,0.3)",
         }} />
         <div className="scope-knob-needle" style={{
           position: "absolute", left: "50%", top: "50%", width: 5, height: needleHeight,
@@ -593,8 +618,8 @@ function ScopeKnob({
         <div className="scope-knob-hub" style={{
           position: "absolute", left: "50%", top: "50%", width: 24, height: 24,
           transform: "translate(-50%, -50%)",
-          background: "radial-gradient(circle at 35% 30%, #fff8e8, #d8be8c 48%, #5b3b1d 100%)",
-          boxShadow: `0 0 12px ${UI_ACCENT_FAINT}, inset 0 0 9px rgba(67,44,22,0.35)`,
+          background: "radial-gradient(circle at 35% 30%, #f8fbff, #98a9ba 48%, #1b344d 100%)",
+          boxShadow: `0 0 12px ${UI_ACCENT_FAINT}, inset 0 0 9px rgba(18,26,36,0.35)`,
         }} />
         {Array.from({ length: tickCount }).map((_, i) => {
           const tickAngle = -135 + (i / (tickCount - 1)) * 270
@@ -605,7 +630,7 @@ function ScopeKnob({
               style={{
                 position: "absolute", left: "50%", top: "50%", width: 2,
                 height: i === 0 || i === tickCount - 1 || (steps && i === 1) ? 14 : 8,
-                background: active ? UI_ACCENT_DARK : "rgba(46,38,25,0.22)",
+                background: active ? UI_ACCENT_DARK : "rgba(18,26,36,0.22)",
                 boxShadow: active ? `0 0 5px ${UI_ACCENT_FAINT}` : "none",
                 transformOrigin: `50% ${tickRadius}px`, transform: `translate(-50%, -${tickRadius}px) rotate(${tickAngle}deg)`,
               }}

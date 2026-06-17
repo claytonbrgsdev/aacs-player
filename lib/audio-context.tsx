@@ -260,10 +260,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const initWebAudio = useCallback(() => {
     if (webAudioContextRef.current || !audioRef.current) return
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext
+      const ctx = new AudioContextCtor({ latencyHint: 'interactive' })
       const analyser = ctx.createAnalyser()
       analyser.fftSize = FFT_SIZE
-      analyser.smoothingTimeConstant = 0.8
+      analyser.smoothingTimeConstant = 0.18
       const source = ctx.createMediaElementSource(audioRef.current)
       source.connect(analyser)
       analyser.connect(ctx.destination)

@@ -12,23 +12,29 @@ interface Props {
   isPlaying: boolean
   volume: number
   sensitivity?: number
+  lines?: number
   mode?: "trace" | "dual" | "xy"
 }
 
 const DIV_X = 10  // horizontal divisions
 const DIV_Y = 8   // vertical divisions
 const WINDOW = 1024 // samples shown across the screen
+const MAX_DPR = 1.5
+const TRACE_POINTS = 640
+const XY_POINTS = 512
 
-export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, mode = "trace" }: Props) {
+export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, lines = 3, mode = "trace" }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const getAnalyserRef = useRef(getAnalyser)
   const playingRef = useRef(isPlaying)
   const sensitivityRef = useRef(sensitivity)
+  const linesRef = useRef(lines)
   const modeRef = useRef(mode)
   useEffect(() => { getAnalyserRef.current = getAnalyser }, [getAnalyser])
   useEffect(() => { playingRef.current = isPlaying }, [isPlaying])
   useEffect(() => { sensitivityRef.current = sensitivity }, [sensitivity])
+  useEffect(() => { linesRef.current = lines }, [lines])
   useEffect(() => { modeRef.current = mode }, [mode])
 
   useEffect(() => {
@@ -43,7 +49,7 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
     let triggerX = 0
 
     const resize = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1)
       wCss = host.clientWidth
       hCss = host.clientHeight
       canvas.width = Math.round(wCss * dpr)
@@ -88,16 +94,9 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
     }
 
     const drawPanelChrome = (playing: boolean, currentMode: "trace" | "dual" | "xy") => {
-      const g = ctx.createLinearGradient(0, 0, 0, hCss)
-      g.addColorStop(0, "rgba(12,31,19,0.92)")
-      g.addColorStop(0.5, "rgba(2,9,5,0.96)")
-      g.addColorStop(1, "rgba(0,4,2,0.98)")
-      ctx.fillStyle = g
-      ctx.fillRect(0, 0, wCss, hCss)
-
-      ctx.fillStyle = "rgba(58,208,122,0.06)"
-      for (let x = 0; x < wCss; x += 18) ctx.fillRect(x, 0, 1, hCss)
-      for (let y = 0; y < hCss; y += 18) ctx.fillRect(0, y, wCss, 1)
+      ctx.fillStyle = "rgba(58,208,122,0.045)"
+      for (let x = 0; x < wCss; x += 24) ctx.fillRect(x, 0, 1, hCss)
+      for (let y = 0; y < hCss; y += 24) ctx.fillRect(0, y, wCss, 1)
 
       ctx.fillStyle = "rgba(58,208,122,0.65)"
       ctx.font = "11px ui-monospace, monospace"
@@ -164,47 +163,67 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
       ctx.restore()
     }
 
-    const drawXyTrace = (playing: boolean, sensitivityValue: number) => {
+    const drawXyTrace = (playing: boolean, sensitivityValue: number, lineCountValue: number) => {
       const cx = wCss / 2
       const cy = hCss / 2 + 4
       const radius = Math.min(wCss - 96, hCss - 62) * 0.46
       const gain = Math.min(6.2, Math.max(0.32, Math.pow(sensitivityValue, 0.92)))
+      const beamWidth = 1.16
+      const glowScale = 1
+      const lineCount = Math.max(1, Math.min(5, Math.round(lineCountValue)))
+      const phaseSet = [384, 128, 96, 256, 512]
+      const lineStyles = [
+        ["rgba(70,255,140,0.82)", 2, 28],
+        ["rgba(220,255,230,0.9)", 0.92, 0],
+        ["rgba(90,255,150,0.22)", 1.05, 14],
+        ["rgba(150,255,185,0.24)", 0.84, 10],
+        ["rgba(210,255,225,0.2)", 0.72, 8],
+      ] as const
       let bass = 0
       let air = 0
       for (let i = 2; i < 48; i++) bass += freq[i]
-      for (let i = 260; i < 760; i++) air += freq[i]
+      for (let i = 260; i < 760; i += 4) air += freq[i]
       bass = bass / 46 / 255
-      air = air / 500 / 255
+      air = air / 125 / 255
 
       drawRadialGrid(cx, cy, radius)
 
-      const drawPhasePath = (phase: number, scale: number, color: string, width: number, glow: number) => {
+      const drawPhasePath = (lineIndex: number, totalLines: number, phase: number, scale: number, color: string, width: number, glow: number) => {
+        const center = (totalLines - 1) / 2
+        const offset = totalLines === 1 ? 0 : (lineIndex - center) / center
+        const rotate = offset * 0.18
+        const spread = offset * (0.1 + bass * 0.24)
         ctx.beginPath()
-        for (let i = 0; i < WINDOW; i++) {
-          const idx = (i * 2) % buf.length
+        for (let i = 0; i < XY_POINTS; i++) {
+          const idx = (i * 4) % buf.length
+          const t = i / (XY_POINTS - 1)
           const a = (buf[idx] - 128) / 128
           const b = (buf[(idx + phase) % buf.length] - 128) / 128
-          const swirl = Math.sin(i * 0.026 + phase * 0.011) * air * 0.42
-          const x = cx + (a + b * swirl) * radius * scale * gain
-          let y = cy + (b - a * swirl) * radius * scale * gain
+          const angle = t * Math.PI * 2
+          const swirl = Math.sin(i * 0.026 + phase * 0.011) * air * (0.2 + totalLines * 0.06)
+          const px = (a + b * swirl + Math.sin(angle) * spread) * radius * scale * gain
+          const py = (b - a * swirl + Math.cos(angle) * spread * 0.72) * radius * scale * gain
+          const x = cx + px * Math.cos(rotate) - py * Math.sin(rotate)
+          let y = cy + px * Math.sin(rotate) + py * Math.cos(rotate)
           if (!playing) y = cy + Math.sin(i * 0.04 + phase) * 2
           if (i === 0) ctx.moveTo(x, y)
           else ctx.lineTo(x, y)
         }
         ctx.lineJoin = "round"
         ctx.shadowColor = color
-        ctx.shadowBlur = glow
+        ctx.shadowBlur = glow * glowScale
         ctx.strokeStyle = color
-        ctx.lineWidth = width
+        ctx.lineWidth = width * beamWidth
         ctx.stroke()
       }
 
       ctx.save()
       ctx.globalCompositeOperation = "lighter"
-      drawPhasePath(96, 0.74 + bass * 0.18, "rgba(90,255,150,0.22)", 1.4, 14)
-      drawPhasePath(256, 0.58 + air * 0.24, "rgba(180,255,205,0.16)", 1.1, 10)
-      drawPhasePath(384, 0.9, "rgba(70,255,140,0.82)", 2.8, 28 + bass * 18)
-      drawPhasePath(128, 0.98 + bass * 0.2, "rgba(220,255,230,0.95)", 0.9, 0)
+      for (let i = 0; i < lineCount; i++) {
+        const [color, width, glow] = lineStyles[i]
+        const scale = 0.74 + i * 0.06 + bass * (0.12 + i * 0.02)
+        drawPhasePath(i, lineCount, phaseSet[i], scale, color, width, glow + bass * 14)
+      }
       ctx.restore()
 
       ctx.shadowBlur = 0
@@ -213,7 +232,7 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
       ctx.textAlign = "center"
       ctx.fillText("X-Y LASER", cx, 36)
       ctx.fillStyle = "rgba(210,255,225,0.72)"
-      ctx.fillText(`GAIN ${sensitivityValue.toFixed(1)}x`, cx, hCss - 34)
+      ctx.fillText(`GAIN ${sensitivityValue.toFixed(1)}x · LINES ${lineCount}`, cx, hCss - 34)
     }
 
     const draw = () => {
@@ -221,10 +240,13 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
       const an = getAnalyserRef.current()
       const playing = playingRef.current
       const sensitivityValue = sensitivityRef.current
+      const lineCountValue = Math.max(1, Math.min(5, Math.round(linesRef.current)))
       const currentMode = modeRef.current
+      const glowScale = 1
+      const beamWidth = 1.12
 
       // phosphor persistence: fade the previous frame instead of clearing
-      ctx.fillStyle = "rgba(3,10,5,0.24)"
+      ctx.fillStyle = "rgba(3,10,5,0.28)"
       ctx.fillRect(0, 0, wCss, hCss)
       drawPanelChrome(playing, currentMode)
 
@@ -257,11 +279,12 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
       const traceW = Math.max(10, wCss - marginX - 18)
       const path = (baseline = cyp, scale = 1, sampleOffset = 0, invert = false) => {
         ctx.beginPath()
-        for (let i = 0; i < WINDOW; i++) {
-          const s = buf[(trig + i + sampleOffset) % buf.length]
+        for (let i = 0; i < TRACE_POINTS; i++) {
+          const sourceIndex = Math.floor((i / (TRACE_POINTS - 1)) * (WINDOW - 1))
+          const s = buf[(trig + sourceIndex + sampleOffset) % buf.length]
           const rawNorm = (s - 128) / 128
           const norm = invert ? -rawNorm : rawNorm
-          const x = marginX + (i / (WINDOW - 1)) * traceW
+          const x = marginX + (i / (TRACE_POINTS - 1)) * traceW
           let y = baseline - norm * vgain * scale
           if (!playing) y = baseline + (Math.random() - 0.5) * 1.5
           if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
@@ -269,7 +292,7 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
       }
 
       if (currentMode === "xy") {
-        drawXyTrace(playing, sensitivityValue)
+        drawXyTrace(playing, sensitivityValue, lineCountValue)
         drawSideMeters(vu, playing)
       } else {
         if (currentMode === "dual") {
@@ -286,23 +309,23 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
 
           ctx.lineJoin = "round"
           ctx.shadowColor = "rgba(80,255,150,0.78)"
-          ctx.shadowBlur = 16
+          ctx.shadowBlur = 16 * glowScale
           ctx.strokeStyle = "rgba(70,255,140,0.84)"
-          ctx.lineWidth = 2.6
+          ctx.lineWidth = 1.8 * beamWidth
           path(topY, 0.9, 0, false); ctx.stroke()
           ctx.shadowBlur = 0
           ctx.strokeStyle = "rgba(220,255,230,0.95)"
-          ctx.lineWidth = 1
+          ctx.lineWidth = 1.05
           path(topY, 0.9, 0, false); ctx.stroke()
 
           ctx.shadowColor = "rgba(130,255,180,0.55)"
-          ctx.shadowBlur = 12
+          ctx.shadowBlur = 12 * glowScale
           ctx.strokeStyle = "rgba(140,255,185,0.58)"
-          ctx.lineWidth = 2
+          ctx.lineWidth = 1.4 * beamWidth
           path(bottomY, 0.72, 164, true); ctx.stroke()
           ctx.shadowBlur = 0
           ctx.strokeStyle = "rgba(210,255,225,0.62)"
-          ctx.lineWidth = 0.9
+          ctx.lineWidth = 0.95
           path(bottomY, 0.72, 164, true); ctx.stroke()
 
           ctx.fillStyle = "rgba(160,255,190,0.72)"
@@ -313,14 +336,14 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
         } else {
           ctx.lineJoin = "round"
           ctx.shadowColor = "rgba(80,255,150,0.85)"
-          ctx.shadowBlur = 22
+          ctx.shadowBlur = 22 * glowScale
           ctx.strokeStyle = "rgba(70,255,140,0.85)"
-          ctx.lineWidth = 3.2
+          ctx.lineWidth = 2.1 * beamWidth
           path(cyp, 1.02); ctx.stroke()
 
           ctx.shadowBlur = 0
           ctx.strokeStyle = "rgba(220,255,230,0.96)"
-          ctx.lineWidth = 1.2
+          ctx.lineWidth = 1.15
           path(cyp, 1.02); ctx.stroke()
 
           ctx.fillStyle = "rgba(160,255,190,0.72)"
@@ -349,7 +372,7 @@ export default function Oscilloscope({ getAnalyser, isPlaying, sensitivity = 1, 
       ctx.textBaseline = "top"
       ctx.textAlign = "left"
       ctx.fillText("CH1  AC  50mV/DIV", 66, hCss - 30)
-      ctx.fillText(`TIME 0.5ms/DIV  ${currentMode.toUpperCase()}  GAIN ${sensitivityValue.toFixed(1)}x`, 66, hCss - 18)
+      ctx.fillText(`TIME 0.5ms/DIV  ${currentMode.toUpperCase()}  GAIN ${sensitivityValue.toFixed(1)}x${currentMode === "xy" ? `  LINES ${lineCountValue}` : ""}`, 66, hCss - 18)
       ctx.textAlign = "right"
       ctx.fillStyle = playing ? "rgba(90,255,150,0.95)" : "rgba(150,150,150,0.7)"
       ctx.fillText(playing ? "● RUN   EDGE ▲ AUTO" : "○ STOP  NO SIGNAL", wCss - 12, hCss - 30)
