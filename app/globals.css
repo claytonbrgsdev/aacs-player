@@ -12,6 +12,23 @@
   writing-mode: vertical-rl;
 }
 
+.scope-knob-shell,
+.scope-knob-ring,
+.scope-knob-inner,
+.scope-knob-hub {
+  border-radius: 9999px !important;
+}
+
+.scope-knob-needle {
+  border-radius: 9999px 9999px 2px 2px !important;
+}
+
+.chu-monitor-shell,
+.chu-monitor-screen,
+.chu-monitor-screen canvas {
+  border-radius: 9999px !important;
+}
+
 /* Custom scrollbar - raw style */
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;

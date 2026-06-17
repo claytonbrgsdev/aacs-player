@@ -4,17 +4,9 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'a.s.a.',
-  description: 'ASCII Spectrum Analyzer',
+  title: 'v0 App',
+  description: 'Created with v0',
   generator: 'v0.dev',
-  icons: {
-    icon: [
-      { url: '/favicon.png', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/favicon.png', type: 'image/png' },
-    ],
-  },
 }
 
 export default function RootLayout({
