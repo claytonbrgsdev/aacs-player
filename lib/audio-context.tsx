@@ -146,6 +146,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const webAudioContextRef = useRef<globalThis.AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
+  const outputGainRef = useRef<GainNode | null>(null)
   const audioUpdateIntervalRef = useRef<number | undefined>(undefined)
 
   // Stable getter — visualizations call this inside their own rAF loop to read
@@ -216,18 +217,22 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       const analyser = ctx.createAnalyser()
       analyser.fftSize = FFT_SIZE
       analyser.smoothingTimeConstant = 0.18
+      const outputGain = ctx.createGain()
+      outputGain.gain.value = volume / 100
       const source = ctx.createMediaElementSource(audioRef.current)
-      source.connect(analyser)
+      source.connect(outputGain)
+      outputGain.connect(analyser)
       analyser.connect(ctx.destination)
       webAudioContextRef.current = ctx
       analyserRef.current = analyser
       sourceRef.current = source
+      outputGainRef.current = outputGain
       // Resume if suspended — non-blocking; browser permits this after user gesture
       if (ctx.state === 'suspended') ctx.resume().catch(() => {})
     } catch (e) {
       console.error('Web Audio init failed:', e)
     }
-  }, [])
+  }, [volume])
 
   const play = useCallback((track?: Track) => {
     if (!audioRef.current) return
@@ -318,6 +323,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume / 100
+    }
+    if (outputGainRef.current) {
+      outputGainRef.current.gain.setTargetAtTime(
+        volume / 100,
+        webAudioContextRef.current?.currentTime ?? 0,
+        0.01,
+      )
     }
   }, [volume])
 
